@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Sparkles, MousePointerClick, Search, Bookmark, BookOpen, ClipboardCheck, Calculator, X, ChevronLeft, RotateCcw } from 'lucide-react';
+import { Sparkles, MousePointerClick, Search, Bookmark, BookOpen, ClipboardCheck, Calculator, X, ChevronLeft, ChevronRight, RotateCcw, Atom, FlaskConical, ArrowLeft, GraduationCap, Home, Focus, CheckCircle2, Target, MoveUpRight, PlayCircle } from 'lucide-react';
 import type { InteractiveHotspot } from '../types';
 import { bookToc } from '../data/tocData';
 import { allBookHotspots, getHotspotsForPage } from '../data/bookHotspots';
@@ -25,7 +25,8 @@ function saveStored(key: string, value: string) {
 const formulaEntries = allBookHotspots.filter(h => h.formula);
 const quizEntries = allBookHotspots.flatMap(h => (h.quiz || []).map(q => ({...q, page: h.page, hotspot: h})))
   .filter((q, i, list) => q.options.length > 1 && q.correctIndex >= 0 && q.correctIndex < q.options.length && list.findIndex(other => normalize(other.question) === normalize(q.question)) === i);
-type StudyTab = 'search' | 'bookmarks' | 'formulas' | 'quiz';
+type StudyTab = 'search' | 'bookmarks' | 'formulas' | 'quiz' | 'labs';
+const labEntries = allBookHotspots.filter((h,i,list) => h.simulation && list.findIndex(other => other.simulation === h.simulation) === i);
 
 function getInitialPage(): number {
   if (typeof window !== 'undefined') {
@@ -45,6 +46,8 @@ function getInitialPage(): number {
 
 export default function InteractiveTextbookReader() {
   const [currentPage, setCurrentPage] = useState<number>(getInitialPage);
+  const [showHome, setShowHome] = useState(() => !new URLSearchParams(window.location.search).has('page'));
+  const [focusMode, setFocusMode] = useState(false);
   const [isSpread, setIsSpread] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerWidth >= 1120 : true
   );
@@ -179,7 +182,7 @@ export default function InteractiveTextbookReader() {
     setSelectedHotspot(hotspot);
     setStudyTab(null);
   };
-  const openPage = (page: number) => { handleJumpToPage(page); setStudyTab(null); };
+  const openPage = (page: number) => { handleJumpToPage(page); setStudyTab(null); setShowHome(false); };
   const handleNextGuidedHotspot = () => {
     if (spreadHotspots.length === 0) return;
     const currentIndex = spreadHotspots.findIndex(
@@ -191,13 +194,91 @@ export default function InteractiveTextbookReader() {
     setSelectedHotspot(nextHotspot);
   };
 
+  const launchStudy = (tab: StudyTab) => {setShowHome(false);setSearch('');setStudyTab(tab);};
+  const goHome = () => {setSelectedHotspot(null);setFocusedHotspotId(null);setStudyTab(null);setFocusMode(false);setShowHome(true);window.scrollTo({top:0});};
+
+  if (showHome) return (
+    <div dir="rtl" className="min-h-screen bg-[#f6f8fc] text-slate-900">
+      <header className="bg-white border-b border-slate-200">
+        <div className="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3"><div className="bg-[#142c49] text-cyan-300 w-12 h-12 grid place-items-center rounded-2xl shadow-sm"><Atom className="w-8 h-8" strokeWidth={1.6}/></div><div><h1 className="font-black text-xl leading-tight">فيشيا<span className="text-teal-600">.</span></h1><p className="text-[11px] text-slate-500 tracking-wide">PHYSIIIA · PHYSICS LAB</p></div></div>
+          <button type="button" onClick={()=>openPage(currentPage)} className="flex items-center gap-2 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold hover:bg-slate-50"><BookOpen className="w-4 h-4 text-teal-700"/> الكتاب</button>
+        </div>
+      </header>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-9 space-y-8">
+        <section className="relative isolate overflow-hidden rounded-[30px] bg-[#112b49] text-white min-h-[310px] grid md:grid-cols-[1.2fr_0.8fr] shadow-lg shadow-slate-900/10">
+          <div className="absolute inset-0 -z-10 opacity-20" style={{backgroundImage:'linear-gradient(#7dd3fc22 1px, transparent 1px),linear-gradient(90deg,#7dd3fc22 1px, transparent 1px)',backgroundSize:'32px 32px'}}/>
+          <div className="relative z-10 p-6 sm:p-10 lg:p-12 flex flex-col justify-center">
+            <span className="text-xs font-bold text-teal-200 inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-teal-300"/> الصف العاشر · المنهاج الأردني · الفصل الأول</span>
+            <h2 className="text-3xl sm:text-5xl leading-[1.35] font-black mt-4">الفيزياء،<br/><span className="text-[#71e0ce]">بتصير أوضح.</span></h2>
+            <p className="text-slate-200 leading-loose text-sm sm:text-base mt-4 max-w-lg">افهم الفكرة، جرّب القانون بإيدك، واختبر فهمك. كتابك المدرسي ومختبرك التفاعلي في مكان واحد.</p>
+            <div className="flex flex-wrap gap-3 mt-7">
+              <button type="button" onClick={()=>openPage(currentPage)} className="bg-[#71e0ce] hover:bg-teal-200 text-[#102b42] px-5 py-3 rounded-xl font-black text-sm inline-flex items-center gap-2"><BookOpen className="w-5 h-5"/> أكمل القراءة <ArrowLeft className="w-4 h-4"/></button>
+              <button type="button" onClick={()=>launchStudy('labs')} className="border border-white/30 hover:bg-white/10 px-4 py-3 rounded-xl font-bold text-sm inline-flex items-center gap-2"><FlaskConical className="w-5 h-5"/> جرّب المختبر</button>
+            </div>
+            <p className="mt-3 text-xs text-slate-300">آخر صفحة: {currentPage} · {currentSectionTitle}</p>
+          </div>
+          <div className="hidden md:grid place-items-center relative px-6" aria-hidden="true">
+            <svg viewBox="0 0 340 300" className="w-full max-w-[390px]" fill="none">
+              <circle cx="170" cy="150" r="120" stroke="#83e0da" strokeOpacity=".13" strokeDasharray="4 8"/><circle cx="170" cy="150" r="100" stroke="#83e0da" strokeOpacity=".2"/>
+              <path d="M24 150H316M170 16V284" stroke="#8ab4d4" strokeOpacity=".22" strokeDasharray="3 7"/>
+              <g transform="translate(170 150)" stroke="#83e0da" strokeWidth="2.2"><ellipse rx="116" ry="42" transform="rotate(-24)"/><ellipse rx="116" ry="42" transform="rotate(36)" stroke="#7dbcf8"/><ellipse rx="116" ry="42" transform="rotate(96)" stroke="#83e0da" strokeOpacity=".7"/></g>
+              <circle cx="170" cy="150" r="25" fill="#6bdbc7" fillOpacity=".14"/><circle cx="170" cy="150" r="10" fill="#91f3df"/><circle cx="264" cy="97" r="7" fill="#90f0d8"/><circle cx="89" cy="101" r="6" fill="#91c9ff"/><circle cx="158" cy="260" r="6" fill="#f7d391"/>
+              <g fill="#c5e4ef" fontFamily="monospace" fontSize="14"><text x="244" y="34">F = ma</text><text x="25" y="263">v = u + at</text><text x="13" y="58">ΣF</text></g>
+              <path d="M275 233l20 -40 18 40" stroke="#f7d391" strokeWidth="1.6" strokeLinejoin="round"/><path d="M275 233H313" stroke="#f7d391" strokeOpacity=".6"/>
+            </svg>
+          </div>
+        </section>
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          {([
+            ['search','ابحث وافهم','الشروحات والأمثلة',Search,'bg-[#e6f2ff] text-[#1557a3]'],
+            ['formulas','بنك القوانين','القوانين والرموز',Calculator,'bg-[#eee9ff] text-[#6747b8]'],
+            ['labs','مختبر فيشيا','محاكاة وتجارب',FlaskConical,'bg-[#dcf6ef] text-[#116c59]'],
+            ['quiz','اختبر نفسك','تدريب ومراجعة',ClipboardCheck,'bg-[#fff1db] text-[#9b5a12]'],
+          ] as const).map(([tab,title,subtitle,Icon,tone])=><button key={tab} type="button" onClick={()=>launchStudy(tab)} className="group text-right bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 hover:border-teal-400 hover:shadow-md focus-visible:ring-2 focus-visible:ring-teal-500">
+            <div className="flex items-start justify-between"><span className={`rounded-xl p-3 inline-flex ${tone}`}><Icon className="w-6 h-6" strokeWidth={1.8}/></span><ArrowLeft className="w-4 h-4 text-slate-400 group-hover:text-teal-700"/></div>
+            <h3 className="mt-4 font-black text-sm sm:text-base">{title}</h3><p className="mt-1 text-xs text-slate-500">{subtitle}</p>
+          </button>)}
+        </section>
+        <section className="space-y-4">
+          <div className="flex items-end justify-between gap-3"><div><p className="text-xs text-teal-700 font-bold mb-1">مسار التعلّم</p><h2 className="text-xl sm:text-2xl font-black">اختار وحدتك</h2></div><span className="text-xs text-slate-500">وحدتان · {lessonItems.length} دروس</span></div>
+          <div className="grid md:grid-cols-2 gap-4">
+            {bookToc.map((unit,i)=>{const lessons=unit.items.filter(item=>item.type==='lesson');const done=lessons.filter(item=>completedIds.includes(item.id)).length;return <article key={unit.id} className="rounded-2xl bg-white border border-slate-200 overflow-hidden">
+              <div className={`relative h-28 sm:h-32 p-5 flex items-center justify-between overflow-hidden ${i===0?'bg-[#dceefc] text-[#1b527d]':'bg-[#e0f3eb] text-[#176c55]'}`}>
+                <div><p className="text-xs font-bold">الوحدة {unit.number}</p><h3 className="text-xl sm:text-2xl font-black mt-1">{unit.title.split(': ').at(-1)}</h3><p className="text-xs opacity-80 mt-1">{unit.englishTitle}</p></div>
+                <svg viewBox="0 0 120 90" className="w-28 sm:w-36 h-full opacity-85" fill="none" aria-hidden="true">
+                {i===0?<><path d="M15 76H109M23 82V8" stroke="currentColor" strokeOpacity=".35" strokeWidth="1.5"/><path d="M23 76L85 20M23 76L101 76" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/><path d="M74 21L85 20L84 31M93 69L101 76L93 83" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/><path d="M85 20V76" stroke="currentColor" strokeDasharray="4 4"/><path d="M44 76A21 21 0 0 0 38 61" stroke="currentColor" strokeWidth="1.5"/></>:<><path d="M10 77H111M15 80V10" stroke="currentColor" strokeOpacity=".4" strokeWidth="1.5"/><path d="M19 75Q58 -14 105 75" stroke="currentColor" strokeWidth="3" strokeDasharray="5 5"/><circle cx="59" cy="31" r="7" fill="currentColor"/><path d="M59 31V58M54 52L59 59L64 52" stroke="currentColor" strokeWidth="2"/><path d="M22 72L37 50M28 51L37 50L37 59" stroke="currentColor" strokeWidth="2"/></>}
+                </svg>
+              </div>
+              <div className="p-5 space-y-3"><div className="flex justify-between text-xs text-slate-500"><span>{lessons.length} دروس · الصفحات {unit.startPage}–{unit.endPage}</span><span>{done}/{lessons.length} مكتمل</span></div><div className="h-1.5 rounded-full bg-slate-100 overflow-hidden"><div className="bg-teal-500 h-full" style={{width:(100*done/Math.max(1,lessons.length))+'%'}}/></div>
+              {lessons.map(item=><button key={item.id} type="button" onClick={()=>openPage(item.page)} className="w-full flex items-center justify-between gap-2 rounded-lg hover:bg-slate-50 py-2 text-sm text-right"><span className="flex gap-2 items-center"><CheckCircle2 className={`w-4 h-4 shrink-0 ${completedIds.includes(item.id)?'text-teal-600':'text-slate-300'}`}/>{item.title.replace(/^الدرس[^:]+:\s*/,'')}</span><ChevronLeft className="w-4 h-4 text-slate-400 shrink-0"/></button>)}
+              <button type="button" onClick={()=>openPage(unit.startPage)} className="w-full rounded-xl border border-slate-200 py-2.5 text-sm font-bold hover:border-teal-500">افتح الوحدة <ArrowLeft className="w-4 h-4 inline"/></button></div>
+            </article>})}
+          </div>
+        </section>
+        <section className="grid sm:grid-cols-2 gap-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4"><div className="w-16 h-16 rounded-full grid place-items-center shrink-0" style={{background:`conic-gradient(#159b85 ${progress}%,#edf2f5 0)`}}><div className="w-[52px] h-[52px] rounded-full bg-white grid place-items-center font-black text-teal-800">{progress}%</div></div><div><h3 className="font-black">تقدّمك في الكتاب</h3><p className="text-xs text-slate-500 mt-1">أنجزت {completedLessons} من {lessonItems.length} دروس.</p></div></div>
+          <button type="button" onClick={()=>launchStudy('bookmarks')} className="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 text-right hover:border-teal-500"><div className="bg-amber-50 text-amber-700 p-4 rounded-xl"><Bookmark className="w-6 h-6"/></div><div className="flex-1"><h3 className="font-black">محفوظاتي</h3><p className="text-xs text-slate-500 mt-1">{bookmarks.length} صفحات محفوظة للمراجعة</p></div><ChevronLeft className="w-5 h-5 text-slate-400"/></button>
+        </section>
+        <footer className="text-center text-xs text-slate-500 pb-4">فيشيا · تعلّم، جرّب، افهم.</footer>
+      </main>
+    </div>
+  );
+
   return (
     <div
-      className="min-h-screen flex flex-col bg-[#f4f6f9] text-slate-900"
+      className="min-h-screen flex flex-col bg-[#edf2f7] text-slate-900"
       data-testid="app-root"
       data-current-page={currentPage}
       data-teacher-mode={teacherMode ? 'on' : 'off'}
     >
+      <div className="bg-[#112b49] text-white px-3 sm:px-5 py-2">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-3">
+          <button type="button" onClick={goHome} className="inline-flex items-center gap-2 font-black text-sm"><Atom className="w-6 h-6 text-teal-300"/><span>فيشيا<span className="text-teal-300">.</span></span><Home className="w-4 h-4 text-slate-300"/></button>
+          <span className="hidden sm:inline text-xs text-slate-300">مساحة القراءة التفاعلية</span>
+          <button type="button" aria-pressed={focusMode} onClick={()=>setFocusMode(f=>!f)} className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 py-1.5 px-3 text-xs font-bold"><Focus className="w-4 h-4"/>{focusMode?'إظهار أدوات الدراسة':'وضع التركيز'}</button>
+        </div>
+      </div>
       <BookToolbar
         currentPage={currentPage}
         totalPages={TOTAL_BOOK_PAGES}
@@ -236,7 +317,7 @@ export default function InteractiveTextbookReader() {
       />
 
       {/* Study dashboard — lightweight, independent of the book and teacher tools */}
-      <section dir="rtl" className="bg-gradient-to-l from-slate-900 to-slate-800 text-white px-3 sm:px-5 py-3">
+      <section dir="rtl" className={`bg-gradient-to-l from-[#173852] to-[#112b49] text-white px-3 sm:px-5 py-3 ${focusMode ? "hidden" : ""}`}>
         <div className="max-w-[1600px] mx-auto flex flex-wrap gap-3 items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             <div className="bg-sky-400/15 rounded-xl p-2.5"><BookOpen className="w-5 h-5 text-sky-300" /></div>
@@ -244,7 +325,7 @@ export default function InteractiveTextbookReader() {
           </div>
           <div className="flex gap-2 items-center flex-wrap">
             {([
-              ['search', 'بحث', Search], ['formulas', 'بنك القوانين', Calculator], ['quiz', 'اختبر نفسك', ClipboardCheck], ['bookmarks', 'محفوظاتي', Bookmark]
+              ['search', 'بحث', Search], ['formulas', 'بنك القوانين', Calculator], ['labs','المختبر',FlaskConical], ['quiz', 'اختبر نفسك', ClipboardCheck], ['bookmarks', 'محفوظاتي', Bookmark]
             ] as const).map(([tab, label, Icon]) => (
               <button key={tab} type="button" onClick={() => {setSearch('');setStudyTab(tab);}} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold focus-visible:ring-2 focus-visible:ring-sky-300 ${tab === 'quiz' ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-white/10 hover:bg-white/20 text-white'}`}><Icon className="w-4 h-4"/>{label}</button>
             ))}
@@ -261,7 +342,7 @@ export default function InteractiveTextbookReader() {
         <div className="fixed inset-0 z-50 bg-slate-950/60 flex items-end sm:items-center justify-center p-0 sm:p-5" onClick={() => setStudyTab(null)}>
           <section role="dialog" aria-modal="true" aria-label="مركز الدراسة" dir="rtl" className="w-full sm:max-w-3xl max-h-[90dvh] flex flex-col bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <header className="px-4 sm:px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-              <div><p className="text-xs text-sky-700 font-bold">مركز الدراسة</p><h2 className="text-lg font-black">{({search:'ابحث في الكتاب',bookmarks:'الصفحات المحفوظة',formulas:'بنك القوانين',quiz:'اختبر نفسك'})[studyTab]}</h2></div>
+              <div><p className="text-xs text-sky-700 font-bold">مركز الدراسة</p><h2 className="text-lg font-black">{({search:'ابحث في الكتاب',bookmarks:'الصفحات المحفوظة',formulas:'بنك القوانين',quiz:'اختبر نفسك',labs:'مختبر فيشيا'})[studyTab]}</h2></div>
               <button autoFocus type="button" aria-label="إغلاق مركز الدراسة" onClick={() => setStudyTab(null)} className="p-2 rounded-lg hover:bg-slate-100"><X className="w-5 h-5"/></button>
             </header>
             <div className="overflow-y-auto p-4 sm:p-6 space-y-4">
@@ -285,6 +366,11 @@ export default function InteractiveTextbookReader() {
                 </div>
                 {!formulaEntries.some(h => !searchTerm || normalize(h.title+' '+h.formula!.title+' '+h.formula!.equation).includes(searchTerm)) && <p className="text-sm text-slate-500">لا توجد قوانين مطابقة.</p>}
               </>}
+              {studyTab === 'labs' && <>
+                <p className="text-sm text-slate-600">اختر تجربة من الكتاب وغيّر المتغيرات لملاحظة أثرها في المحاكاة.</p>
+                <div className="grid sm:grid-cols-2 gap-3">{labEntries.map(h=><button key={h.id} type="button" onClick={()=>openTopic(h)} className="text-right border border-slate-200 hover:border-teal-500 rounded-2xl p-4 bg-white"><div className="flex items-center justify-between"><span className="bg-teal-50 rounded-xl p-3 text-teal-700"><FlaskConical className="w-6 h-6"/></span><span className="text-xs text-slate-500">ص {h.page}</span></div><h3 className="font-black text-sm mt-3">{h.title}</h3><span className="text-xs text-teal-700 font-bold inline-flex items-center gap-1 mt-3"><PlayCircle className="w-4 h-4"/> افتح المحاكاة</span></button>)}</div>
+                {!labEntries.length && <p className="text-sm text-slate-500">لا توجد محاكاة متاحة.</p>}
+              </>}
               {studyTab === 'quiz' && <>
                 <div className="flex flex-wrap gap-2 items-center"><label className="text-sm font-bold" htmlFor="study-unit">الوحدة</label><select id="study-unit" value={quizUnit} onChange={e=>{setQuizUnit(e.target.value);setQuizRound(0);resetQuiz();}} className="border rounded-lg border-slate-300 p-2 text-sm"><option value="all">كل الوحدات</option><option value="1">المتجهات</option><option value="2">الحركة والقوى</option></select><button type="button" onClick={()=>{setQuizRound(r=>r+1);resetQuiz();}} className="text-xs font-bold text-sky-700 inline-flex gap-1 items-center"><RotateCcw className="w-4 h-4"/> مجموعة أخرى</button></div>
                 {quizQuestions.length === 0 ? <p>لا توجد أسئلة متاحة لهذه الوحدة.</p> : quizFinished ? <div className="text-center space-y-4 py-5"><p className="text-sm font-bold text-slate-600">نتيجتك</p><p className="text-4xl font-black text-sky-700">{quizScore} / {quizQuestions.length}</p><div className="space-y-2 text-right">{quizQuestions.filter((q,i)=>quizPicks[i]!==q.correctIndex).map((q,i)=><div key={i} className="rounded-xl border border-slate-200 p-3 space-y-1"><p className="font-bold text-sm">{q.question}</p><p className="text-sm text-slate-600">{q.explanation}</p><button type="button" onClick={()=>openTopic(q.hotspot)} className="text-sm text-sky-700 font-bold">راجع الشرح · ص {q.page}</button></div>)}</div><button type="button" onClick={resetQuiz} className="bg-slate-900 text-white rounded-xl px-5 py-3 font-bold text-sm">إعادة الاختبار</button></div> : quizQuestion && <div className="space-y-4">
@@ -300,7 +386,7 @@ export default function InteractiveTextbookReader() {
       )}
 
       {/* Contextual Quick Strip for Hotspots on Current Visible Pages */}
-      <div className="bg-white/95 border-b border-slate-200 px-3 sm:px-5 py-2">
+      <div className={`bg-white/95 border-b border-slate-200 px-3 sm:px-5 py-2 ${focusMode ? "hidden" : ""}`}>
         <div className="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-xs text-slate-700 font-semibold">
             <MousePointerClick className="w-4 h-4 text-sky-600 shrink-0" />
@@ -338,7 +424,7 @@ export default function InteractiveTextbookReader() {
 
       {/* Workspace Split: Book Stage + Non-Obstructing Docked Explanation Drawer */}
       <div className="flex-1 flex flex-col lg:flex-row min-h-0">
-        <main className="flex-1 overflow-auto px-3 sm:px-6 py-5 flex flex-col items-center">
+        <main className="flex-1 min-w-0 overflow-auto px-3 sm:px-6 py-5 flex flex-col items-center">
           <div
             className="flex flex-wrap xl:flex-nowrap items-start justify-center gap-4 sm:gap-5 w-full max-w-full"
             data-testid="book-spread"
