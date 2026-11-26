@@ -385,7 +385,7 @@ export default function HotspotExplanationDrawer({
                   )}
                   {answered && teacherHideAnswers && (
                     <div className="p-2 rounded-lg text-xs bg-slate-100 text-slate-700">
-                      تم تسجيل اختيار الطالبة — أطفئ "إخفاء الحلول" من وضع المعلم لكشف النتيجة والتعليل.
+                      تم تسجيل اختيارك — أطفئ "إخفاء الحلول" من وضع المعلم لكشف النتيجة والتعليل.
                     </div>
                   )}
                 </div>
